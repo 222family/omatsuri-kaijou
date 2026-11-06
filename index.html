@@ -1373,36 +1373,21 @@ const anchor=gate.querySelector('.r103-note');gate.insertBefore(world,anchor);ga
 function update(){const dream=document.getElementById('dream')?.value.trim();if(!dream)return;const hits=patterns.filter(p=>p[0].test(dream));const theme=hits[0]||[null,['🎪','✨','🏮'],'#7289b1','#365063'];const icons=[...new Set(hits.flatMap(p=>p[1]))].slice(0,5);if(!icons.length)icons.push(...theme[1]);world.style.setProperty('--r105-sky',theme[2]);world.style.setProperty('--r105-earth',theme[3]);document.getElementById('r105Places').replaceChildren(...icons.slice(0,4).map(x=>{const s=document.createElement('span');s.textContent=x;return s}));const phrase=dream.replace(/\s+/g,' ').slice(0,56);document.getElementById('r105Banner').textContent='ようこそ、「'+phrase+(dream.length>56?'…':'')+'」の世界へ';pop.style.animation='none';void pop.offsetWidth;pop.style.animation='';}
 birth.addEventListener('click',update);
 })();</script><script>
-// PWA package patch v2 (trio): (1) header count pill always mirrors the real
-// saved-booth count from localStorage; (2) rescue the "resume plaza" button
-// back to the interview panel if the app's maintenance sweep moved it into
-// the maintenance <details>; (3) service worker registration.
+// PWA package patch (trio): startup count-pill correction + service worker registration.
+// The app loads saved booths at startup and shows the count in the resume button
+// label; mirror that real count into the header pill on load so it never shows
+// a stale "0 ブース" after a reload.
 (function(){
-  function trueCount(){
-    try{var raw=localStorage.getItem('omatsuri_r103_booths'); if(raw){var a=JSON.parse(raw); if(Array.isArray(a)) return a.length;}}catch(e){}
+  function fixCount(){
+    var n=null;
     var r=document.getElementById('resume');
-    if(r){var m=r.textContent.match(/（\s*(\d+)\s*ブース\s*）/); if(m) return parseInt(m[1],10);}
-    return null;
-  }
-  function fixPill(){
-    var n=trueCount(); if(n===null) return;
-    var c=document.getElementById('count');
-    if(c && c.textContent.trim()!==n+' ブース'){ c.textContent=n+' ブース'; }
-  }
-  function rescueResume(){
-    var r=document.getElementById('resume'); if(!r) return;
-    if(r.closest('details')){
-      var interview=document.getElementById('interview');
-      var host=interview?interview.querySelector('.actions'):null;
-      if(host){ host.appendChild(r); r.classList.remove('hidden'); }
+    if(r){var m=r.textContent.match(/（\s*(\d+)\s*ブース\s*）/); if(m){n=parseInt(m[1],10);}}
+    if(n===null){
+      try{var raw=localStorage.getItem('omatsuri_r103_booths'); if(raw){var a=JSON.parse(raw); if(Array.isArray(a)) n=a.length;}}catch(e){}
     }
+    if(n!==null && n>0){var c=document.getElementById('count'); if(c){c.textContent=n+' ブース';}}
   }
-  function tick(){ fixPill(); rescueResume(); }
-  window.addEventListener('load',function(){
-    tick();
-    var iv=setInterval(tick,1000);
-    setTimeout(function(){clearInterval(iv); setInterval(tick,4000);},20000);
-  });
+  window.addEventListener('load',function(){fixCount(); setTimeout(fixCount,1500);});
 })();
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').then(function(){var d=document.createElement('div');d.id='pwaSwMarker';d.textContent='sw-registered';d.style.display='none';document.body.appendChild(d);}).catch(function(){});});}
 </script>
