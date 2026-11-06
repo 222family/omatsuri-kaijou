@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>おまつりかいじょう R200｜夢から、ブースがポン。</title>
+<title>おまつりかいじょう R210｜夢から、ブースがポン。</title>
 <style>
 :root{--ink:#30281e;--cream:#fff9e9;--gold:#ffd16a;--red:#d85543;--green:#173c35;--muted:#756d60;--paper:#f7f0dc}
 *{box-sizing:border-box}
@@ -67,6 +67,15 @@ details.opt summary{cursor:pointer;font-size:13px;color:var(--muted);font-weight
 #birthShow .motifs{font-size:40px;margin-top:12px;letter-spacing:10px}
 #birthShow .words{margin-top:12px;font-size:14px;opacity:.92}
 #birthShow .btn{margin-top:22px;background:var(--gold);color:#4a2f10}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{border:2px solid #cbb27a;background:#fff;border-radius:999px;padding:10px 16px;font-weight:700;min-height:44px}
+.chip.sel{background:var(--green);color:var(--cream);border-color:var(--green)}
+#hearPanel{margin-top:16px;border-top:2px dashed #e9c87d;padding-top:14px}
+#hearFree{margin-top:10px}
+.items{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.items span{background:#fdf3d0;border:1px solid #e3c884;border-radius:999px;padding:6px 12px;font-size:13px}
+.welcome{font-size:15px;background:#eef6ee;border-left:4px solid #7fb069;border-radius:10px;padding:10px 14px;line-height:1.7}
 footer{color:var(--muted);font-size:12px;text-align:center;padding:26px 10px 40px}
 </style>
 <link rel="manifest" href="./manifest.webmanifest">
@@ -79,7 +88,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:26px 10px 40p
 <body>
 <header>
   <div class="brand">🏮 おまつりかいじょう<small>あなたの夢が、誰かの訪れる場所になる。</small></div>
-  <span class="pill" id="badge">R200 · PUBLIC PROTOTYPE</span>
+  <span class="pill" id="badge">R210 · PUBLIC PROTOTYPE</span>
   <span class="pill" id="count">0 ブース</span>
 </header>
 <main class="wrap">
@@ -115,6 +124,15 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:26px 10px 40p
       <div class="btn-row">
         <button class="btn btn-green hidden" id="resume" type="button">🏮 わたしの広場をひらく（<span id="savedCount">0</span>ブース）</button>
       </div>
+      <div id="hearPanel" class="hidden">
+        <div class="guide" id="hearQ"></div>
+        <div class="chips" id="hearChips"></div>
+        <input type="text" id="hearFree" class="hidden" maxlength="60" placeholder="自由にひとこと（任意）">
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="hearSkip" type="button">このままポン！</button>
+          <button class="btn btn-green hidden" id="hearNext" type="button">これで決める →</button>
+        </div>
+      </div>
     </section>
 
     <div class="plaza-head">
@@ -135,6 +153,9 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:26px 10px 40p
     <section class="panel">
       <div class="eyebrow">この世界の夢</div>
       <p id="boothDream" style="font-size:16px;line-height:1.7"></p>
+      <p class="welcome" id="boothWelcome"></p>
+      <div class="eyebrow" style="margin-top:16px">🎁 この世界の宝物</div>
+      <div class="items" id="boothItems"></div>
       <p class="hint" id="boothMeta"></p>
       <div class="btn-row">
         <button class="btn btn-primary" id="shareBtn" type="button" style="width:auto;margin-top:0">🎁 シェアカードを作る</button>
@@ -161,11 +182,12 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:26px 10px 40p
     <div class="worldname" id="showName"></div>
     <div class="motifs" id="showMotifs"></div>
     <div class="words" id="showWords"></div>
+    <div class="words" id="showWelcome" style="font-weight:700"></div>
     <button class="btn hidden" id="showGo" type="button">🏮 わたしの世界を見る</button>
   </div>
 </div>
 
-<footer>おまつりかいじょう R200 — 夢を語ったら、その内容のおまつりかいじょうがポンって出る。</footer>
+<footer>おまつりかいじょう R210 — 夢を語ったら、その内容のおまつりかいじょうがポンって出る。</footer>
 <script>
 (function(){
 'use strict';
@@ -182,6 +204,30 @@ var THEMES = [
   { id:'mirai',  keys:['未来','AI','ロボット','テクノロジー','宇宙船','発明'], emojis:['🤖','🚀','💡'], sky:['#10243e','#2d6a9f'], suffix:['未来の世界','ひらめきの夢舞台','発明のブース'] },
   { id:'matsuri',keys:['祭','子ども','遊び','ゲーム','おもちゃ','笑'], emojis:['🎪','🏮','🎠'], sky:['#5c1f16','#b33926'], suffix:['おまつりの世界','笑顔の夢舞台','遊びのブース'] }
 ];
+
+var SOUNDS = {
+  hoshi:['静けさと虫の声','遠くの波音','やさしい風の音','小さなベルの音'],
+  umi:['波音','船の汽笛','かもめの声','風と帆の音'],
+  mori:['鳥のさえずり','葉ずれの音','小川のせせらぎ','薪のはぜる音'],
+  ongaku:['生演奏の音色','みんなの歌声','レコードの音','手拍子と笑い声'],
+  shoku:['食器のふれあう音','湯気の立つ香り','パンの焼ける匂い','笑い声とおしゃべり'],
+  hana:['花の香りと風','ミツバチの羽音','鳥のさえずり','静かな午後'],
+  mirai:['新しい発明のワクワク音','ロボットの足音','電子音と笑い声','静かな実験室'],
+  matsuri:['太鼓と笛の音','子どもの笑い声','屋台の呼び声','拍手とお囃子'],
+  yume:['静けさ','笑い声','音楽','風の音']
+};
+var ITEMS = {
+  hoshi:['望遠鏡','星図の看板','温かい飲み物の屋台'],
+  umi:['貝殻のコレクション','港の地図','潮風のベンチ'],
+  mori:['大きな切り株のテーブル','森の案内図','木漏れ日のハンモック'],
+  ongaku:['小さなステージ','楽器の貸し出し箱','歌詞カードの束'],
+  shoku:['自慢の食卓','手書きメニューの看板','ほかほかの湯気'],
+  hana:['花のトンネル','種の交換箱','花言葉のカード'],
+  mirai:['発明品の展示棚','試作品の体験台','未来の年表'],
+  matsuri:['大きな提灯','輪投げと射的','笑顔の写真スポット'],
+  yume:['案内人の提灯','夢の掲示板','小さな舞台']
+};
+var WORD_OF_KEY = {'星':'星空','空':'星空','海':'海','島':'島','森':'森','音楽':'音楽','歌':'音楽','花':'花','未来':'未来','祭':'おまつり','食':'食卓','カフェ':'食卓','子ども':'笑顔'};
 var FALLBACK = { id:'yume', emojis:['🎪','🏮','✨'], sky:['#274d74','#14172d'], suffix:['夢の世界','はじまりの夢舞台','小さなブース'] };
 
 function pickTheme(dream){
@@ -267,6 +313,16 @@ function openBooth(id){
   $('boothName').textContent = displayName(b);
   $('boothTag').textContent = b.tag || 'ここから、物語がはじまる';
   $('boothDream').textContent = b.dream || '';
+  var wel = $('boothWelcome');
+  if(b.welcome){ wel.textContent = b.welcome; wel.classList.remove('hidden'); }
+  else { wel.textContent = ''; wel.classList.add('hidden'); }
+  var itemsBox = $('boothItems');
+  itemsBox.replaceChildren();
+  (Array.isArray(b.items) ? b.items : []).forEach(function(it){
+    var s = document.createElement('span');
+    s.textContent = typeof it === 'string' ? it : (it && it.name) ? it.name : '';
+    if(s.textContent) itemsBox.appendChild(s);
+  });
   var meta = [];
   if(b.owner) meta.push('持ち主：' + b.owner);
   if(b.who) meta.push('来てほしい人：' + b.who);
@@ -296,7 +352,52 @@ function renderLog(b){
   });
 }
 
-function birth(){
+/* ===== Hearing (Part 3) + dream-to-world conversion (Part 4) =====
+   v220 note: when a real AI endpoint is configured, window.OMATSURI_AI.hear(dream)
+   will supply the follow-up questions and the world seed; the rule-based
+   hearing below remains the offline fallback. */
+window.OMATSURI_AI = window.OMATSURI_AI || null;
+
+var hearState = null;
+
+function dreamWords(dream){
+  var found = [];
+  Object.keys(WORD_OF_KEY).forEach(function(k){
+    if(dream.indexOf(k) >= 0){
+      var w = WORD_OF_KEY[k];
+      if(found.indexOf(w) < 0) found.push(w);
+    }
+  });
+  return found.slice(0, 2);
+}
+function makeName(dream, t){
+  var w = dreamWords(dream);
+  if(w.length >= 2) return w[0] + 'と' + w[1] + 'の夢舞台';
+  if(w.length === 1) return w[0] + 'の夢舞台';
+  return t.suffix[Math.floor(Math.random() * t.suffix.length)];
+}
+function makeWelcome(dream, who, feel, sound){
+  var w = who || '旅人';
+  var f = feel || 'ほっとして';
+  var s = sound || '';
+  var head = s ? '「' + s + '」が満ちる場所。' : '';
+  return head + w + 'がふらっと立ち寄って、「' + f + '」帰っていく。';
+}
+function makeItems(t, sound){
+  var base = (ITEMS[t.id] || ITEMS.yume).slice();
+  var extra = null;
+  if(sound){
+    if(sound.indexOf('波音') >= 0) extra = '波音が聞こえる特等席';
+    else if(sound.indexOf('演奏') >= 0 || sound.indexOf('歌声') >= 0 || sound.indexOf('音楽') >= 0) extra = '小さな演奏スペース';
+    else if(sound.indexOf('静けさ') >= 0 || sound.indexOf('静か') >= 0) extra = '静けさを守る小さな看板';
+    else if(sound.indexOf('笑い声') >= 0 || sound.indexOf('笑顔') >= 0) extra = '笑顔が集まるベンチ';
+    else if(sound.indexOf('香り') >= 0 || sound.indexOf('匂い') >= 0) extra = '香りの小瓶コレクション';
+  }
+  if(extra && base.indexOf(extra) < 0) base.push(extra);
+  return base.slice(0, 4);
+}
+
+function startHearing(){
   var dream = $('dream').value.trim();
   if(!dream){
     $('error').textContent = '夢のかけらを、ひとことだけ聞かせて。';
@@ -304,22 +405,78 @@ function birth(){
     return;
   }
   $('error').textContent = '';
-  var who = $('who').value.trim();
+  var t = pickTheme(dream);
+  hearState = { step: 0, dream: dream, theme: t, sound: '', guest: '' };
+  $('birth').classList.add('hidden');
+  $('hearPanel').classList.remove('hidden');
+  renderHearStep();
+  $('hearPanel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function renderHearStep(){
+  var st = hearState;
+  var chipsBox = $('hearChips');
+  chipsBox.replaceChildren();
+  $('hearFree').classList.add('hidden');
+  $('hearFree').value = '';
+  $('hearNext').classList.add('hidden');
+  var qs = [
+    { text: '🦊 案内人「いい夢だね。その世界で、いちばん感じたい音や香りは？」', options: SOUNDS[st.theme.id] || SOUNDS.yume, key: 'sound' },
+    { text: '🦊 案内人「もうひとつだけ。誰が最初のお客さんだと思う？」', options: ['島の人','旅人','子どもたち','大切なあの人'], key: 'guest' }
+  ];
+  var q = qs[st.step];
+  $('hearQ').textContent = q.text;
+  q.options.forEach(function(opt){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip';
+    b.textContent = opt;
+    b.addEventListener('click', function(){
+      st[q.key] = opt;
+      var all = chipsBox.querySelectorAll('.chip');
+      all.forEach(function(x){ x.classList.remove('sel'); });
+      b.classList.add('sel');
+      $('hearNext').classList.remove('hidden');
+    });
+    chipsBox.appendChild(b);
+  });
+  var other = document.createElement('button');
+  other.type = 'button';
+  other.className = 'chip';
+  other.textContent = '✏️ 自分で書く';
+  other.addEventListener('click', function(){
+    var all = chipsBox.querySelectorAll('.chip');
+    all.forEach(function(x){ x.classList.remove('sel'); });
+    other.classList.add('sel');
+    st[q.key] = '';
+    $('hearFree').classList.remove('hidden');
+    $('hearNext').classList.remove('hidden');
+    $('hearFree').focus();
+  });
+  chipsBox.appendChild(other);
+}
+
+function finishHearing(){
+  var st = hearState || { dream: $('dream').value.trim(), theme: pickTheme($('dream').value.trim()), sound: '', guest: '' };
+  var dream = st.dream;
+  var t = st.theme;
+  var who = st.guest || $('who').value.trim();
   var feel = $('feel').value.trim();
   var owner = $('owner').value.trim();
-  var t = pickTheme(dream);
-  var name = t.suffix[Math.floor(Math.random() * t.suffix.length)];
+  var name = makeName(dream, t);
+  var welcome = makeWelcome(dream, who, feel, st.sound);
   var booth = {
     id: uid(),
     owner: owner,
     dream: dream,
     who: who,
     feel: feel,
+    sound: st.sound || '',
     name: name,
     emoji: t.emojis[0],
     tag: feel || 'ここから、物語がはじまる',
-    welcome: '',
-    items: [],
+    welcome: welcome,
+    items: makeItems(t, st.sound),
     guestNotes: [],
     created: new Date().toISOString(),
     log: [{ at: new Date().toISOString(), text: '🎪 誕生。夢が語られ、世界が生まれた。' }]
@@ -334,9 +491,13 @@ function birth(){
   $('showName').textContent = '「' + name + '」';
   $('showMotifs').textContent = t.emojis.join(' ');
   $('showWords').textContent = 'ようこそ、「' + dream.slice(0, 42) + '」の世界へ';
+  $('showWelcome').textContent = welcome;
   $('showGo').classList.add('hidden');
   $('birthShow').classList.remove('hidden');
   setTimeout(function(){ $('showGo').classList.remove('hidden'); }, 1600);
+  $('hearPanel').classList.add('hidden');
+  $('birth').classList.remove('hidden');
+  hearState = null;
   renderHome();
 }
 
@@ -381,7 +542,17 @@ function shareCard(){
   }, 'image/png');
 }
 
-$('birth').addEventListener('click', birth);
+$('birth').addEventListener('click', startHearing);
+$('hearSkip').addEventListener('click', finishHearing);
+$('hearNext').addEventListener('click', function(){
+  if(!hearState) return;
+  var free = $('hearFree');
+  if(free && !free.classList.contains('hidden') && free.value.trim()){
+    if(hearState.step === 0) hearState.sound = free.value.trim(); else hearState.guest = free.value.trim();
+  }
+  if(hearState.step === 0){ hearState.step = 1; renderHearStep(); }
+  else { finishHearing(); }
+});
 $('resume').addEventListener('click', function(){
   var grid = $('plazaGrid');
   if(grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
