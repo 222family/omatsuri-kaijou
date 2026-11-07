@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>おまつりかいじょう R210｜夢から、ブースがポン。</title>
+<title>おまつりかいじょう R220｜夢から、ブースがポン。</title>
 <style>
 :root{--ink:#30281e;--cream:#fff9e9;--gold:#ffd16a;--red:#d85543;--green:#173c35;--muted:#756d60;--paper:#f7f0dc}
 *{box-sizing:border-box}
@@ -88,7 +88,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:26px 10px 40p
 <body>
 <header>
   <div class="brand">🏮 おまつりかいじょう<small>あなたの夢が、誰かの訪れる場所になる。</small></div>
-  <span class="pill" id="badge">R210 · PUBLIC PROTOTYPE</span>
+  <span class="pill" id="badge">R220 · PUBLIC PROTOTYPE</span>
   <span class="pill" id="count">0 ブース</span>
 </header>
 <main class="wrap">
@@ -183,15 +183,17 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:26px 10px 40p
     <div class="motifs" id="showMotifs"></div>
     <div class="words" id="showWords"></div>
     <div class="words" id="showWelcome" style="font-weight:700"></div>
+    <div class="words" id="showForming">✨ 世界が生まれています…</div>
     <button class="btn hidden" id="showGo" type="button">🏮 わたしの世界を見る</button>
   </div>
 </div>
 
-<footer>おまつりかいじょう R210 — 夢を語ったら、その内容のおまつりかいじょうがポンって出る。</footer>
+<footer>おまつりかいじょう R220 — 夢を語ったら、その内容のおまつりかいじょうがポンって出る。</footer>
 <script>
 (function(){
 'use strict';
 var KEY = 'omatsuri_r103_booths';
+var AI_ENDPOINT = 'https://omatsuri-ai.yumekakudai.workers.dev/'; // v220: Cloudflare Worker relay (deployed 2026-11-07).
 var $ = function(id){ return document.getElementById(id); };
 
 var THEMES = [
@@ -356,7 +358,28 @@ function renderLog(b){
    v220 note: when a real AI endpoint is configured, window.OMATSURI_AI.hear(dream)
    will supply the follow-up questions and the world seed; the rule-based
    hearing below remains the offline fallback. */
-window.OMATSURI_AI = window.OMATSURI_AI || null;
+window.OMATSURI_AI = {
+  hear: function(draft){
+    if(!AI_ENDPOINT) return Promise.resolve(null);
+    var ctl = ('AbortController' in window) ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function(){ ctl.abort(); }, 9000) : null;
+    return fetch(AI_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: ctl ? ctl.signal : undefined,
+      body: JSON.stringify(draft)
+    }).then(function(r){
+      if(timer) clearTimeout(timer);
+      if(!r.ok) return null;
+      return r.json();
+    }).then(function(j){
+      return (j && j.ok && j.seed) ? j.seed : null;
+    }).catch(function(){
+      if(timer) clearTimeout(timer);
+      return null;
+    });
+  }
+};
 
 var hearState = null;
 
@@ -463,42 +486,70 @@ function finishHearing(){
   var who = st.guest || $('who').value.trim();
   var feel = $('feel').value.trim();
   var owner = $('owner').value.trim();
-  var name = makeName(dream, t);
-  var welcome = makeWelcome(dream, who, feel, st.sound);
-  var booth = {
-    id: uid(),
-    owner: owner,
-    dream: dream,
-    who: who,
-    feel: feel,
-    sound: st.sound || '',
-    name: name,
-    emoji: t.emojis[0],
+  var ruleSeed = {
+    name: makeName(dream, t),
     tag: feel || 'ここから、物語がはじまる',
-    welcome: welcome,
+    welcome: makeWelcome(dream, who, feel, st.sound),
     items: makeItems(t, st.sound),
-    guestNotes: [],
-    created: new Date().toISOString(),
-    log: [{ at: new Date().toISOString(), text: '🎪 誕生。夢が語られ、世界が生まれた。' }]
+    emoji: t.emojis[0]
   };
-  booths.unshift(booth);
-  if(!save()){
-    booths.shift();
-    $('error').textContent = '保存できませんでした。ブラウザの保存許可を確認してください。';
-    return;
-  }
-  pendingBooth = booth;
-  $('showName').textContent = '「' + name + '」';
+  var draft = { dream: dream, sound: st.sound || '', guest: st.guest || '', who: who, feel: feel };
+
+  // Birth show shell first: the show itself covers the AI wait.
+  $('showName').textContent = '';
   $('showMotifs').textContent = t.emojis.join(' ');
   $('showWords').textContent = 'ようこそ、「' + dream.slice(0, 42) + '」の世界へ';
-  $('showWelcome').textContent = welcome;
+  $('showWelcome').textContent = '';
+  $('showForming').classList.remove('hidden');
   $('showGo').classList.add('hidden');
   $('birthShow').classList.remove('hidden');
-  setTimeout(function(){ $('showGo').classList.remove('hidden'); }, 1600);
   $('hearPanel').classList.add('hidden');
   $('birth').classList.remove('hidden');
   hearState = null;
-  renderHome();
+
+  var applied = false;
+  function applySeed(seed, isAI){
+    if(applied) return;
+    applied = true;
+    var s = seed || {};
+    var booth = {
+      id: uid(),
+      owner: owner,
+      dream: dream,
+      who: who,
+      feel: feel,
+      sound: st.sound || '',
+      name: s.name || ruleSeed.name,
+      emoji: s.emoji || ruleSeed.emoji,
+      tag: s.tag || ruleSeed.tag,
+      welcome: s.welcome || ruleSeed.welcome,
+      items: (s.items && s.items.length) ? s.items : ruleSeed.items,
+      guestNotes: [],
+      created: new Date().toISOString(),
+      ai: isAI ? 'gemini' : '',
+      log: [{ at: new Date().toISOString(), text: '🎪 誕生。夢が語られ、世界が生まれた。' }]
+    };
+    booths.unshift(booth);
+    if(!save()){
+      booths.shift();
+      $('error').textContent = '保存できませんでした。ブラウザの保存許可を確認してください。';
+      $('birthShow').classList.add('hidden');
+      return;
+    }
+    pendingBooth = booth;
+    $('showName').textContent = '「' + booth.name + '」';
+    $('showWelcome').textContent = booth.welcome;
+    $('showForming').classList.add('hidden');
+    setTimeout(function(){ $('showGo').classList.remove('hidden'); }, 500);
+    renderHome();
+  }
+
+  if(window.OMATSURI_AI && AI_ENDPOINT){
+    window.OMATSURI_AI.hear(draft).then(function(seed){ applySeed(seed || ruleSeed, !!seed); });
+    setTimeout(function(){ applySeed(ruleSeed, false); }, 9800);
+  }else{
+    setTimeout(function(){ applySeed(ruleSeed, false); }, 900);
+  }
 }
 
 function shareCard(){
